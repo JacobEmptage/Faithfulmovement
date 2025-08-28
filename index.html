@@ -1,68 +1,243 @@
-// This script serves prayer requests from a Google Sheet as a JSON API.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faithful Movement - Prayer Requests</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            background: linear-gradient(to bottom right, #e0f2fe, #e6e6fa); /* Light blue to light purple */
+        }
+        .card {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            text-align: center;
+            max-width: 650px; /* Slightly wider card for requests */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            border: 1px solid #c3b1e1;
+            animation: fadeIn 0.8s ease-out;
+            z-index: 2;
+        }
+        .brand-name {
+            font-family: 'Merriweather', serif;
+            font-size: 1.8rem; /* Slightly larger brand name */
+            font-weight: 700;
+            color: #8b5cf6;
+            margin-bottom: 5px;
+        }
+        h1 {
+            font-family: 'Merriweather', serif;
+            font-size: 2.5rem; /* Larger heading */
+            font-weight: 700;
+            color: #6a0dad;
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-family: 'Merriweather', serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #4a0072;
+            margin-top: 20px;
+            margin-bottom: 15px;
+        }
+        .prayer-list {
+            list-style: none;
+            padding: 0;
+            text-align: left;
+            margin: 0;
+        }
+        .prayer-item {
+            background-color: #f8f0ff; /* Lighter background for each item */
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e0b0ff;
+        }
+        .prayer-name-date {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #6a0dad;
+            margin-bottom: 5px;
+        }
+        .prayer-request-text {
+            font-size: 1.1rem;
+            color: #4a0072;
+            line-height: 1.5;
+        }
+        .no-requests {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #cc4444; /* Reddish for "no requests" */
+            margin-top: 20px;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #8b5cf6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <p class="brand-name">Faithful Movement</p>
+        <h1>Prayer Requests</h1>
 
-const SHEET_NAME = 'PrayerRequests'; // Make sure this matches your Google Sheet's name exactly.
+        <div id="loading-indicator" class="loading-spinner"></div>
+        <div id="prayer-content" class="hidden">
+            <h2 class="section-title">Today's Prayer Requests (<span id="today-date"></span>)</h2>
+            <ul id="today-prayer-list" class="prayer-list">
+                <!-- Today's prayers will be loaded here -->
+            </ul>
+            <p id="no-today-requests" class="no-requests hidden">No prayer requests posted for today.</p>
 
-/**
- * Handles GET requests to the deployed web app URL.
- * When a web app URL is hit, this function retrieves all data from the specified sheet
- * and returns it as a JSON array.
- */
-function doGet(e) {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = spreadsheet.getSheetByName(SHEET_NAME);
+            <h2 class="section-title">This Week's Prayer Requests</h2>
+            <ul id="week-prayer-list" class="prayer-list">
+                <!-- This week's prayers (if no today's) will be loaded here -->
+            </ul>
+            <p id="no-week-requests" class="no-requests hidden">No prayer requests posted for this week.</p>
+        </div>
+        <p class="footer-text">Please keep these in your prayers.</p>
+    </div>
 
-  if (!sheet) {
-    // Log an error if the sheet is not found
-    Logger.log(`Sheet with name "${SHEET_NAME}" not found.`);
-    return ContentService.createTextOutput(JSON.stringify({ error: `Sheet "${SHEET_NAME}" not found.` }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
+    <script>
+        // IMPORTANT: This is the Web App URL you got from Google Apps Script deployment!
+        const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwmIMxRFhdP-w-zhdG7Wfl4OddIujEPH9QokLOQ1UnC3Izx_qNq6Y1hZRYEtWGfoe7o/exec';
 
-  // Get all data from the sheet, excluding the header row
-  const data = sheet.getDataRange().getValues();
-  const headers = data.shift(); // Remove the header row and store it
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const prayerContent = document.getElementById('prayer-content');
+        const todayDateSpan = document.getElementById('today-date');
+        const todayPrayerList = document.getElementById('today-prayer-list');
+        const noTodayRequests = document.getElementById('no-today-requests');
+        const weekPrayerList = document.getElementById('week-prayer-list');
+        const noWeekRequests = document.getElementById('no-week-requests');
 
-  const prayerRequests = [];
-  // Convert each row into an object using headers as keys
-  data.forEach(row => {
-    const rowObject = {};
-    headers.forEach((header, index) => {
-      rowObject[header] = row[index];
-    });
-    prayerRequests.push(rowObject);
-  });
+        // Helper to format date as MM/DD/YYYY
+        function formatDate(date) {
+            const d = new Date(date);
+            const month = (d.getMonth() + 1).toString().padStart(2, '0');
+            const day = d.getDate().toString().padStart(2, '0');
+            const year = d.getFullYear();
+            return `${month}/${day}/${year}`;
+        }
 
-  // Set CORS headers to allow requests from any domain (your GitHub Pages site)
-  // This is crucial for your GitHub Pages site to be able to fetch the data.
-  const output = ContentService.createTextOutput(JSON.stringify(prayerRequests));
-  output.setMimeType(ContentService.MimeType.JSON);
-  output.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  output.setHeader('Access-Control-Allow-Origin', '*'); // Allow all origins for simplicity, but consider limiting if privacy is a concern
+        // Helper to get Sunday of the current week (for weekly display)
+        function getSundayOfCurrentWeek() {
+            const today = new Date();
+            const dayOfWeek = today.getDay(); // 0 for Sunday, 1 for Monday, etc.
+            const diff = today.getDate() - dayOfWeek;
+            return new Date(today.setDate(diff));
+        }
 
-  return output;
-}
+        async function fetchPrayerRequests() {
+            loadingIndicator.classList.remove('hidden');
+            prayerContent.classList.add('hidden');
 
-/**
- * A helper function for initial setup to ensure the sheet has headers.
- * This is not called by the web app, but can be run manually in the Apps Script editor.
- */
-function setupPrayerSheet() {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = spreadsheet.getSheetByName(SHEET_NAME);
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
 
-  if (!sheet) {
-    sheet = spreadsheet.insertSheet(SHEET_NAME);
-    sheet.appendRow(['Date', 'Time', 'Name', 'Request']);
-    Logger.log(`Created new sheet: ${SHEET_NAME} with headers.`);
-  } else {
-    // Check if headers exist, if not, add them
-    const existingHeaders = sheet.getRange("A1:D1").getValues()[0];
-    if (existingHeaders[0] !== 'Date' || existingHeaders[1] !== 'Time' || existingHeaders[2] !== 'Name' || existingHeaders[3] !== 'Request') {
-      sheet.insertRowBefore(1); // Insert a new row at the top
-      sheet.getRange("A1:D1").setValues([['Date', 'Time', 'Name', 'Request']]);
-      Logger.log(`Added headers to existing sheet: ${SHEET_NAME}.`);
-    } else {
-      Logger.log(`Sheet "${SHEET_NAME}" already exists and has correct headers.`);
-    }
-  }
-}
+                // Ensure data is an array
+                if (!Array.isArray(data)) {
+                    throw new Error('Data received is not an array.');
+                }
+
+                // Parse dates and sort requests by Date and Time
+                const allRequests = data.map(request => {
+                    // Combine date and time to create a sortable Date object
+                    const dateTimeString = `${request.Date} ${request.Time}`;
+                    return {
+                        ...request,
+                        fullDateTime: new Date(dateTimeString), // For sorting
+                        displayDate: formatDate(new Date(request.Date)) // Consistent display format
+                    };
+                }).sort((a, b) => a.fullDateTime - b.fullDateTime); // Sort ascending
+
+                const today = new Date();
+                const todayFormatted = formatDate(today);
+                const sundayOfThisWeek = getSundayOfCurrentWeek();
+                // Reset time to 00:00:00 for accurate date comparison
+                sundayOfThisWeek.setHours(0, 0, 0, 0);
+                today.setHours(23, 59, 59, 999); // Set today to end of day for inclusive comparison
+
+                const requestsForToday = allRequests.filter(req => req.displayDate === todayFormatted);
+                const requestsForThisWeek = allRequests.filter(req => {
+                    const reqDate = new Date(req.Date); // Use original Date string for comparison to avoid timezone issues
+                    reqDate.setHours(0, 0, 0, 0); // Reset time to 00:00:00 for accurate date comparison
+                    return reqDate >= sundayOfThisWeek && reqDate <= today;
+                }).filter(req => req.displayDate !== todayFormatted); // Exclude today's requests if they are handled separately
+
+                // --- Display Logic ---
+                todayDateSpan.textContent = todayFormatted;
+
+                if (requestsForToday.length > 0) {
+                    // Display today's requests
+                    todayPrayerList.innerHTML = requestsForToday.map(req => `
+                        <li class="prayer-item">
+                            <p class="prayer-name-date">${req.Name} - ${req.Time}</p>
+                            <p class="prayer-request-text">${req.Request}</p>
+                        </li>
+                    `).join('');
+                } else {
+                    // No today's requests, display message and then this week's requests
+                    noTodayRequests.classList.remove('hidden');
+
+                    if (requestsForThisWeek.length > 0) {
+                        weekPrayerList.innerHTML = requestsForThisWeek.map(req => `
+                            <li class="prayer-item">
+                                <p class="prayer-name-date">${req.Name} - ${req.displayDate} ${req.Time}</p>
+                                <p class="prayer-request-text">${req.Request}</p>
+                            </li>
+                        `).join('');
+                    } else {
+                        noWeekRequests.classList.remove('hidden');
+                    }
+                }
+
+            } catch (error) {
+                console.error("Error fetching or processing prayer requests:", error);
+                // Display a user-friendly error message on the page if needed
+                todayPrayerList.innerHTML = `<li class="no-requests text-center">Failed to load prayer requests. Please check your Google Sheet and Apps Script deployment.</li>`;
+                noTodayRequests.classList.add('hidden'); // Hide specific "no requests" if a general error occurred
+                noWeekRequests.classList.add('hidden');
+            } finally {
+                loadingIndicator.classList.add('hidden');
+                prayerContent.classList.remove('hidden');
+            }
+        }
+
+        // Fetch requests when the page loads
+        fetchPrayerRequests();
+    </script>
+</body>
+</html>
