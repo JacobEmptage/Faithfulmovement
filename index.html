@@ -141,13 +141,16 @@
         // Date format: 'MM/DD/YYYY' (e.g., '08/28/2025')
         // Time format: 'HH:MM AM/PM' (e.g., '09:00 AM')
         const allPrayerRequestsData = [
-            // Example: Today's requests (adjust dates to your current day for testing)
-            { Date: '08/28/2025', Time: '09:00 AM', Name: 'John', Request: 'For healing for my aunt Susan.' },
-            { Date: '08/28/2025', Time: '10:15 AM', Name: 'Mary', Request: 'For guidance in a difficult work situation.' },
-            // Example: Requests from earlier in the week (adjust dates for testing)
-            { Date: '08/26/2025', Time: '03:30 PM', Name: 'David', Request: 'For peace in my community.' },
-            { Date: '08/25/2025', Time: '08:00 AM', Name: 'Sarah', Request: 'For strength during a challenging time.' },
-            { Date: '08/27/2025', Time: '02:00 PM', Name: 'Pastor Mike', Request: 'For wisdom in leading the upcoming retreat.' },
+            // Prayer Requests from Jacob Emptage
+            { Date: '08/23/2025', Time: '07:40 AM', Name: 'Jacob Emptage (for Ally\'s dad)', Request: 'For Ally\'s dad, who is having severe trouble breathing and is worried about making it to his doctor appointment in late October. Pray for his health and peace.' },
+            { Date: '08/24/2025', Time: '02:31 PM', Name: 'Jacob Emptage (for friend Zoe)', Request: 'For Zoe as she moves to LA. She has packed and shipped her car and flies Wednesday. Pray for safe travels for her car and a smooth flight.' },
+
+            // Prayer Request from Brenda Maxwell
+            { Date: '08/23/2025', Time: '03:55 PM', Name: 'Brenda Maxwell (for grandson Louie)', Request: 'For grandson Louie on Monday, for his routine MRI to check his organs from iron overload due to transfusions, and for peace as he goes under for the procedure.' },
+
+            // Prayer Request from Becky Seaburn (updated)
+            { Date: '08/25/2025', Time: '09:01 PM', Name: 'Becky Seaburn (for sister-in-law Marlene)', Request: 'For Becky\'s sister-in-law Marlene, who had intestinal surgery on 8/25/25 which went well. Pray for her continued recovery.' },
+
             // Add your new prayer requests below this line:
             // { Date: 'MM/DD/YYYY', Time: 'HH:MM AM/PM', Name: 'Your Name', Request: 'Your prayer request.' },
         ];
@@ -172,8 +175,8 @@
         }
 
         function displayPrayerRequests() {
-            loadingIndicator.classList.remove('hidden');
-            prayerContent.classList.add('hidden');
+            loadingIndicator.classList.add('hidden'); // Hide loading spinner immediately
+            prayerContent.classList.remove('hidden'); // Show content immediately
 
             try {
                 // Parse dates and sort requests by Date and Time
@@ -213,30 +216,31 @@
                         </li>
                     `).join('');
                 } else {
-                    // No today's requests, display message and then this week's requests
+                    // No today's requests, display message
                     noTodayRequests.classList.remove('hidden');
-
-                    if (requestsForThisWeek.length > 0) {
-                        weekPrayerList.innerHTML = requestsForThisWeek.map(req => `
-                            <li class="prayer-item">
-                                <p class="prayer-name-date">${req.Name} - ${req.displayDate} ${req.Time}</p>
-                                <p class="prayer-request-text">${req.Request}</p>
-                            </li>
-                        `).join('');
-                    } else {
-                        noWeekRequests.classList.remove('hidden');
-                    }
                 }
+
+                if (requestsForThisWeek.length > 0) {
+                    weekPrayerList.innerHTML = requestsForThisWeek.map(req => `
+                        <li class="prayer-item">
+                            <p class="prayer-name-date">${req.Name} - ${req.displayDate} ${req.Time}</p>
+                            <p class="prayer-request-text">${req.Request}</p>
+                        </li>
+                    `).join('');
+                } else {
+                    noWeekRequests.classList.remove('hidden');
+                }
+
 
             } catch (error) {
                 console.error("Error displaying prayer requests:", error);
                 // Display a user-friendly error message on the page if needed
-                todayPrayerList.innerHTML = `<li class="no-requests text-center">Failed to load prayer requests.</li>`;
+                todayPrayerList.innerHTML = `<li class="no-requests text-center">There was an error loading prayer requests. Please check the data format.</li>`;
                 noTodayRequests.classList.add('hidden'); // Hide specific "no requests" if a general error occurred
                 noWeekRequests.classList.add('hidden');
             } finally {
-                loadingIndicator.classList.add('hidden');
-                prayerContent.classList.remove('hidden');
+                // Since this is HTML-managed, we don't need a loading spinner
+                // but if there were an issue with JS, it'd appear briefly.
             }
         }
 
