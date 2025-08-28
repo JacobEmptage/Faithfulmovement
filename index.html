@@ -86,7 +86,7 @@
             color: #cc4444; /* Reddish for "no requests" */
             margin-top: 20px;
         }
-        .loading-spinner {
+        .loading-spinner { /* Still useful for initial page load before content is processed */
             border: 4px solid #f3f3f3;
             border-top: 4px solid #8b5cf6;
             border-radius: 50%;
@@ -128,9 +128,6 @@
     </div>
 
     <script>
-        // IMPORTANT: This is the Web App URL you got from Google Apps Script deployment!
-        const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwmIMxRFhdP-w-zhdG7Wfl4OddIujEPH9QokLOQ1UnC3Izx_qNq6Y1hZRYEtWGfoe7o/exec';
-
         const loadingIndicator = document.getElementById('loading-indicator');
         const prayerContent = document.getElementById('prayer-content');
         const todayDateSpan = document.getElementById('today-date');
@@ -138,6 +135,24 @@
         const noTodayRequests = document.getElementById('no-today-requests');
         const weekPrayerList = document.getElementById('week-prayer-list');
         const noWeekRequests = document.getElementById('no-week-requests');
+
+        // --- MANAGE PRAYER REQUESTS HERE ---
+        // Add new prayer requests to this array.
+        // Date format: 'MM/DD/YYYY' (e.g., '08/28/2025')
+        // Time format: 'HH:MM AM/PM' (e.g., '09:00 AM')
+        const allPrayerRequestsData = [
+            // Example: Today's requests (adjust dates to your current day for testing)
+            { Date: '08/28/2025', Time: '09:00 AM', Name: 'John', Request: 'For healing for my aunt Susan.' },
+            { Date: '08/28/2025', Time: '10:15 AM', Name: 'Mary', Request: 'For guidance in a difficult work situation.' },
+            // Example: Requests from earlier in the week (adjust dates for testing)
+            { Date: '08/26/2025', Time: '03:30 PM', Name: 'David', Request: 'For peace in my community.' },
+            { Date: '08/25/2025', Time: '08:00 AM', Name: 'Sarah', Request: 'For strength during a challenging time.' },
+            { Date: '08/27/2025', Time: '02:00 PM', Name: 'Pastor Mike', Request: 'For wisdom in leading the upcoming retreat.' },
+            // Add your new prayer requests below this line:
+            // { Date: 'MM/DD/YYYY', Time: 'HH:MM AM/PM', Name: 'Your Name', Request: 'Your prayer request.' },
+        ];
+        // --- END OF PRAYER REQUESTS ---
+
 
         // Helper to format date as MM/DD/YYYY
         function formatDate(date) {
@@ -156,24 +171,13 @@
             return new Date(today.setDate(diff));
         }
 
-        async function fetchPrayerRequests() {
+        function displayPrayerRequests() {
             loadingIndicator.classList.remove('hidden');
             prayerContent.classList.add('hidden');
 
             try {
-                const response = await fetch(GOOGLE_APPS_SCRIPT_URL);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-
-                // Ensure data is an array
-                if (!Array.isArray(data)) {
-                    throw new Error('Data received is not an array.');
-                }
-
                 // Parse dates and sort requests by Date and Time
-                const allRequests = data.map(request => {
+                const allRequests = allPrayerRequestsData.map(request => {
                     // Combine date and time to create a sortable Date object
                     const dateTimeString = `${request.Date} ${request.Time}`;
                     return {
@@ -225,9 +229,9 @@
                 }
 
             } catch (error) {
-                console.error("Error fetching or processing prayer requests:", error);
+                console.error("Error displaying prayer requests:", error);
                 // Display a user-friendly error message on the page if needed
-                todayPrayerList.innerHTML = `<li class="no-requests text-center">Failed to load prayer requests. Please check your Google Sheet and Apps Script deployment.</li>`;
+                todayPrayerList.innerHTML = `<li class="no-requests text-center">Failed to load prayer requests.</li>`;
                 noTodayRequests.classList.add('hidden'); // Hide specific "no requests" if a general error occurred
                 noWeekRequests.classList.add('hidden');
             } finally {
@@ -236,8 +240,8 @@
             }
         }
 
-        // Fetch requests when the page loads
-        fetchPrayerRequests();
+        // Display requests when the page loads
+        displayPrayerRequests();
     </script>
 </body>
 </html>
