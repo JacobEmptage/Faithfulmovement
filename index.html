@@ -1,139 +1,68 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Daily Dose of Encouragement</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Open Sans', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-            /* Changed to a light blue and light purple gradient background */
-            background: linear-gradient(to bottom right, #e0f2fe, #e6e6fa); /* Light blue to light purple */
-        }
-        .card {
-            background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white for a soft look */
-            border-radius: 20px; /* More rounded corners */
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); /* Stronger shadow */
-            padding: 40px;
-            text-align: center;
-            max-width: 550px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-            border: 1px solid #c3b1e1; /* Soft border color, slightly adjusted for new gradient */
-            animation: fadeIn 0.8s ease-out;
-            z-index: 2; /* Ensure card is above body */
-        }
-        .brand-name {
-            font-family: 'Merriweather', serif;
-            font-size: 1.5rem; /* Slightly smaller than h1 */
-            font-weight: 700;
-            color: #8b5cf6; /* A lighter purple for the brand name */
-            margin-bottom: 10px; /* Space between brand and h1 */
-        }
-        h1 {
-            font-family: 'Merriweather', serif; /* A more distinct heading font */
-            font-size: 2.2rem; /* Larger heading */
-            font-weight: 700;
-            color: #6a0dad; /* Deep purple for heading */
-            margin-bottom: 10px;
-        }
-        .saying-text {
-            font-family: 'Merriweather', serif; /* Using the serif font for sayings too */
-            font-size: 1.8rem; /* Even larger, more impactful text */
-            font-weight: 700;
-            line-height: 1.4;
-            color: #4a0072; /* Darker purple for text */
-            animation: textFadeIn 1.5s ease-out; /* Fade in animation for the text */
-        }
-        .footer-text {
-            font-size: 0.95rem;
-            color: #8b5cf6; /* Lighter purple for footer */
-            margin-top: 15px;
-            font-weight: 600;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes textFadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <p class="brand-name">Faithful Movement</p> <!-- Added "Faithful Movement" above h1 -->
-        <h1>A Little Encouragement For You:</h1>
-        <div id="encouragement-display" class="saying-text">Loading...</div>
-        <p class="footer-text">Tap your NFC tag again for another one!</p>
-    </div>
+// This script serves prayer requests from a Google Sheet as a JSON API.
 
-    <script>
-        const encouragementDisplay = document.getElementById('encouragement-display');
+const SHEET_NAME = 'PrayerRequests'; // Make sure this matches your Google Sheet's name exactly.
 
-        // Your list of encouragement sayings! You can add as many as you like.
-        const encouragementSayings = [
-            "You are loved! (1 John 4:7)",
-            "You are stronger than you think. (Philippians 4:13)",
-            "Believe in yourself. (Mark 9:23)",
-            "Your presence makes a difference. (Matthew 5:16)",
-            "Take a deep breath; you've got this. (Psalm 46:10)",
-            "Today is a new opportunity. (Lamentations 3:22-23)",
-            "You are capable of amazing things. (Luke 1:37)",
-            "Keep shining; the world needs your light. (Matthew 5:14)",
-            "Every step forward is progress. (Philippians 3:13-14)",
-            "Your efforts are noticed and appreciated. (Hebrews 6:10)",
-            "Be kind to yourself. (Ephesians 4:32)",
-            "Great things are coming. (Romans 8:28)",
-            "You bring joy to others. (Proverbs 17:22)",
-            "Embrace the journey. (Proverbs 3:5-6)",
-            "Your potential is limitless. (Ephesians 3:20)",
-            "You are doing enough. (Matthew 6:34)",
-            "Find joy in the little things. (Psalm 118:24)",
-            "Let your heart guide you. (Proverbs 4:23)",
-            "You're making a positive impact. (Galatians 6:9)",
-            "Stay true to you. (Romans 12:2)",
-            "Be proud of who you are. (Psalm 139:14)",
-            "The best is yet to come. (Jeremiah 29:11)",
-            "Your uniqueness is your superpower. (1 Corinthians 12:4-6)",
-            "Smile, it's contagious! (Proverbs 15:13)",
-            "You're inspiring to those around you. (1 Thessalonians 5:11)",
-            // Bible encouragement with original verses
-            "I can do all things through Christ who strengthens me. (Philippians 4:13)",
-            "For I know the plans I have for you,” declares the Lord, “plans to prosper you and not to harm you, plans to give you hope and a future. (Jeremiah 29:11)",
-            "The Lord is my shepherd; I shall not want. (Psalm 23:1)",
-            "Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go. (Joshua 1:9)",
-            "Do not be anxious about anything, but in every situation, by prayer and petition, with thanksgiving, present your requests to God. (Philippians 4:6)",
-            "For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life. (John 3:16)",
-            "The steadfast love of the Lord never ceases; his mercies never come to an end; they are new every morning; great is your faithfulness. (Lamentations 3:22-23)",
-            "Cast all your anxiety on him because he cares for you. (1 Peter 5:7)"
-        ];
+/**
+ * Handles GET requests to the deployed web app URL.
+ * When a web app URL is hit, this function retrieves all data from the specified sheet
+ * and returns it as a JSON array.
+ */
+function doGet(e) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = spreadsheet.getSheetByName(SHEET_NAME);
 
-        function displayRandomSaying() {
-            // Pick a random index from the array
-            const randomIndex = Math.floor(Math.random() * encouragementSayings.length);
-            // Display the randomly selected saying
-            encouragementDisplay.textContent = encouragementSayings[randomIndex];
-            // Restart the text fade-in animation
-            encouragementDisplay.style.animation = 'none';
-            void encouragementDisplay.offsetWidth; // Trigger reflow
-            encouragementDisplay.style.animation = null;
-        }
+  if (!sheet) {
+    // Log an error if the sheet is not found
+    Logger.log(`Sheet with name "${SHEET_NAME}" not found.`);
+    return ContentService.createTextOutput(JSON.stringify({ error: `Sheet "${SHEET_NAME}" not found.` }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 
-        // Display a random saying when the page loads
-        displayRandomSaying();
-    </script>
-</body>
-</html>
+  // Get all data from the sheet, excluding the header row
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift(); // Remove the header row and store it
+
+  const prayerRequests = [];
+  // Convert each row into an object using headers as keys
+  data.forEach(row => {
+    const rowObject = {};
+    headers.forEach((header, index) => {
+      rowObject[header] = row[index];
+    });
+    prayerRequests.push(rowObject);
+  });
+
+  // Set CORS headers to allow requests from any domain (your GitHub Pages site)
+  // This is crucial for your GitHub Pages site to be able to fetch the data.
+  const output = ContentService.createTextOutput(JSON.stringify(prayerRequests));
+  output.setMimeType(ContentService.MimeType.JSON);
+  output.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  output.setHeader('Access-Control-Allow-Origin', '*'); // Allow all origins for simplicity, but consider limiting if privacy is a concern
+
+  return output;
+}
+
+/**
+ * A helper function for initial setup to ensure the sheet has headers.
+ * This is not called by the web app, but can be run manually in the Apps Script editor.
+ */
+function setupPrayerSheet() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(SHEET_NAME);
+
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(SHEET_NAME);
+    sheet.appendRow(['Date', 'Time', 'Name', 'Request']);
+    Logger.log(`Created new sheet: ${SHEET_NAME} with headers.`);
+  } else {
+    // Check if headers exist, if not, add them
+    const existingHeaders = sheet.getRange("A1:D1").getValues()[0];
+    if (existingHeaders[0] !== 'Date' || existingHeaders[1] !== 'Time' || existingHeaders[2] !== 'Name' || existingHeaders[3] !== 'Request') {
+      sheet.insertRowBefore(1); // Insert a new row at the top
+      sheet.getRange("A1:D1").setValues([['Date', 'Time', 'Name', 'Request']]);
+      Logger.log(`Added headers to existing sheet: ${SHEET_NAME}.`);
+    } else {
+      Logger.log(`Sheet "${SHEET_NAME}" already exists and has correct headers.`);
+    }
+  }
+}
