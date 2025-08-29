@@ -141,20 +141,23 @@
         // Date format: 'MM/DD/YYYY' (e.g., '08/28/2025')
         // Time format: 'HH:MM AM/PM' (e.g., '09:00 AM')
         const allPrayerRequestsData = [
-            // Prayer Request from Jacob Emptage (Update on Zoe) - 08/24/2025
+            // Prayer Request from Jacob Emptage (Update on Zoe) - 8/24/2025
             { Date: '08/24/2025', Time: '02:31 PM', Name: 'Jacob Emptage (for Zoe)', Request: 'For my friend Zoe who is moving out to LA. She has packed her car with all her stuff and is shipping her car out there. She is taking a flight Wednesday. Pray that her car makes it there and no issues with the flight.' },
 
-            // Prayer Request from Becky Seaburn (Marlene's Surgery) - 08/24/2025 with Update for 08/25/2025
-            { Date: '08/24/2025', Time: '06:31 PM', Name: 'Becky Seaburn (for Marlene)', Request: 'For her sister-in-law, Marlene, who is having intestinal surgery tomorrow. Pray for Surgeons & Nurses taking care of her and for a speedy recovery. (Update 08/25/2025: Surgery went well. Pray for her recovery.)' },
+            // Prayer Request from Becky Seaburn (Marlene's Surgery) - 8/24/2025 with Update for 8/25/2025
+            { Date: '08/24/2025', Time: '06:31 PM', Name: 'Becky Seaburn (for Marlene)', Request: 'For her sister-in-law, Marlene, who is having intestinal surgery tomorrow. Pray for Surgeons & Nurses taking care of her and for a speedy recovery. (Update 8/25/25: Surgery went well. Pray for her recovery.)' },
 
-            // Prayer Request from Jacob Emptage (Update on Ally's dad) - 08/25/2025
+            // Prayer Request from Jacob Emptage (Update on Ally's dad) - 8/25/2025
             { Date: '08/25/2025', Time: '03:14 PM', Name: 'Jacob Emptage (for Ally\'s dad)', Request: 'Update on my friend Ally’s dad. He went to the hospital yesterday and they said “They didn’t find anything that they considered to be an emergency but they do see issues with his lungs”. He needs to follow up with a specialist in a few months. They gave him an inhaler till then.' },
 
-            // Prayer Request from Jacob Emptage (for brother's dental issues) - 08/26/2025
+            // Prayer Request from Jacob Emptage (for brother's dental issues) - 8/26/2025
             { Date: '08/26/2025', Time: '04:30 PM', Name: 'Jacob Emptage (for brother)', Request: 'My brother went to the dentist because he was having pain. They found that his wisdom teeth and a few molars are really bad, infected, and very crowded. He needs to get his wisdom teeth taken out. Pray that everything goes well and that he is calm.' },
-
-            // Prayer request from Pastor Jay (For Linda's family - 08/28/2025 (TODAY)
+            // Prayer request from pastor jay (For linda's family)
             { Date: '08/28/2025', Time: '12:10 PM', Name: 'Pastor Jay (For Linda)', Request: 'Hospice told her to let family know Bill, Linda\'s Dad, is declining quickly and probably won\'t be long.'},
+            //update on lindas dad 
+            { Date:'08/29/2025', Time: '4:50 PM', Name: 'Linda\'s Dad', Request: 'Continue to pray for Linda, Jay and the family who are still here at Bill\'s bedside'},
+
+    
 
             // Add your new prayer requests below this line:
             // { Date: 'MM/DD/YYYY', Time: 'HH:MM AM/PM', Name: 'Your Name', Request: 'Your prayer request.' },
@@ -162,12 +165,13 @@
         // --- END OF PRAYER REQUESTS ---
 
 
-        // Helper to format a Date object into 'MM/DD/YYYY' string for comparison and display
-        function formatJsDateToMDY(dateObj) {
-            const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
-            const day = dateObj.getDate().toString().padStart(2, '0');
-            const year = dateObj.getFullYear();
-            return `${month}/${day}/${year}`;
+        // Helper to format date as MM/DD/YYYY
+        function formatDate(date) {
+            const d = new Date(date);
+            const month = (d.getMonth() + 1).toString().padStart(2, '0');
+            const day = d.getDate().toString().padStart(2, '0');
+            const year = d.getFullYear();
+            return `${year}/${month}/${day}`; // Changed to YYYY/MM/DD for consistent parsing
         }
 
         // Helper to get Sunday of the current week (for weekly display)
@@ -185,38 +189,39 @@
             try {
                 // Parse dates and sort requests by Date and Time
                 const allRequests = allPrayerRequestsData.map(request => {
-                    // Directly use MM/DD/YYYY from request.Date for parsing
-                    const dateTimeString = `${request.Date} ${request.Time}`;
+                    // Combine date and time to create a sortable Date object
+                    // Ensure the date string is parsed correctly, as 'MM/DD/YYYY HH:MM AM/PM' might be ambiguous
+                    // Using 'YYYY/MM/DD' for consistency with formatDate for internal comparison
+                    const dateParts = request.Date.split('/');
+                    const formattedDateString = `${dateParts[2]}/${dateParts[0]}/${dateParts[1]} ${request.Time}`;
                     return {
                         ...request,
-                        fullDateTime: new Date(dateTimeString), // For sorting and comparison
+                        fullDateTime: new Date(formattedDateString), // For sorting
                         displayDate: request.Date // Keep original MM/DD/YYYY for display
                     };
                 }).sort((a, b) => a.fullDateTime - b.fullDateTime); // Sort ascending
 
                 const today = new Date();
-                const todayString = formatJsDateToMDY(today); // Today as 'MM/DD/YYYY' string
-
-                todayDateSpan.textContent = todayString; // Display today's date
-
-                const requestsForToday = allRequests.filter(req => req.displayDate === todayString);
+                const todayFormatted = formatDate(today); // YYYY/MM/DD for internal comparison
+                const displayTodayFormatted = `${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}/${today.getFullYear()}`; // MM/DD/YYYY for display
 
                 const sundayOfThisWeek = getSundayOfCurrentWeek();
-                sundayOfThisWeek.setHours(0, 0, 0, 0); // Normalize to start of day for comparison
+                sundayOfThisWeek.setHours(0, 0, 0, 0); // Reset time to 00:00:00 for accurate date comparison
 
-                const endOfToday = new Date();
-                endOfToday.setHours(23, 59, 59, 999); // Normalize to end of day for inclusive comparison
+                const requestsForToday = allRequests.filter(req => {
+                    const reqDate = new Date(req.fullDateTime);
+                    return formatDate(reqDate) === todayFormatted;
+                });
 
-                // Filter for this week, excluding today
                 const requestsForThisWeek = allRequests.filter(req => {
-                    const reqDate = req.fullDateTime; // Use the parsed Date object for comparison
-                    reqDate.setHours(0, 0, 0, 0); // Normalize to start of day for comparison
+                    const reqDate = new Date(req.fullDateTime);
+                    reqDate.setHours(0, 0, 0, 0); // Reset time to 00:00:00 for accurate date comparison
+                    return reqDate >= sundayOfThisWeek && reqDate <= today;
+                }).filter(req => formatDate(req.fullDateTime) !== todayFormatted); // Exclude today's requests if they are handled separately
 
-                    return reqDate >= sundayOfThisWeek && reqDate <= endOfToday;
-                }).filter(req => req.displayDate !== todayString); // Exclude today's requests from this list
+                // --- Display Logic ---
+                todayDateSpan.textContent = displayTodayFormatted;
 
-
-                // --- Display Logic for Today ---
                 if (requestsForToday.length > 0) {
                     todayPrayerList.innerHTML = requestsForToday.map(req => `
                         <li class="prayer-item">
@@ -224,13 +229,10 @@
                             <p class="prayer-request-text">${req.Request}</p>
                         </li>
                     `).join('');
-                    noTodayRequests.classList.add('hidden'); // Hide "No requests" message
                 } else {
-                    todayPrayerList.innerHTML = ''; // Clear list
-                    noTodayRequests.classList.remove('hidden'); // Show "No requests" message
+                    noTodayRequests.classList.remove('hidden');
                 }
 
-                // --- Display Logic for This Week ---
                 if (requestsForThisWeek.length > 0) {
                     weekPrayerList.innerHTML = requestsForThisWeek.map(req => `
                         <li class="prayer-item">
@@ -238,20 +240,18 @@
                             <p class="prayer-request-text">${req.Request}</p>
                         </li>
                     `).join('');
-                    noWeekRequests.classList.add('hidden'); // Hide "No requests" message
                 } else {
-                    weekPrayerList.innerHTML = ''; // Clear list
-                    noWeekRequests.classList.remove('hidden'); // Show "No requests" message
+                    noWeekRequests.classList.remove('hidden');
                 }
 
             } catch (error) {
                 console.error("Error displaying prayer requests:", error);
                 todayPrayerList.innerHTML = `<li class="no-requests text-center">There was an error loading prayer requests. Please check the data format.</li>`;
-                noTodayRequests.classList.remove('hidden');
-                weekPrayerList.innerHTML = ''; // Clear list
-                noWeekRequests.classList.remove('hidden');
+                noTodayRequests.classList.add('hidden');
+                noWeekRequests.classList.add('hidden');
             } finally {
-                // Initial loading spinner is always hidden
+                // Since this is HTML-managed, we don't need a loading spinner
+                // but if there were an issue with JS, it'd appear briefly.
             }
         }
 
